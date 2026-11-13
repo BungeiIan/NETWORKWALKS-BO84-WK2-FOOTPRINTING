@@ -1,0 +1,89 @@
+# NETWORKWALKS-WK2-PM1-FOOTPRINTING-RECONNAISSANCE
+
+## Footprinting & Reconnaissance
+
+This project documents a passive information-gathering exercise against **networkwalks.com**, the domain designated for the course lab. I used six command-line utilities from Kali Linux to see what the site and its DNS reveal to anyone on the internet, and saved each tool's output as evidence. The runs were done on 11 November 2026.
+
+## Requirements
+
+- Kali Linux (every tool used is already installed)
+- Internet access
+- Target: `networkwalks.com`
+- A screenshot and a saved text file for each tool
+
+## Method
+
+### 1. whois: who owns the domain
+`whois networkwalks.com`
+
+The registry record lists GoDaddy as the registrar. The domain was created on 6 November 2019, last updated on 12 November 2025 and is registered until 6 November 2027. Its name servers are `NS6135.HOSTGATOR.COM` and `NS6136.HOSTGATOR.COM`, which points to HostGator as the hosting provider. The status flags show client-side locks against deletion, renewal changes, transfer and update, and DNSSEC is marked as unsigned.
+
+### 2. whatweb: what the website is built with
+`whatweb networkwalks.com | tee whatweb_output.text`
+
+The request to plain `http://` timed out ("execution expired"), but the `https://` address returned `200 OK`. WhatWeb identified an Apache server running WordPress 7.1 with the WordPress Download Manager 3.3.58 plugin, plus jQuery 3.7.1, HTML5 and Google Tag Manager. It also exposed the server IP (`192.232.216.135`), the contact address `info@networkwalks.com`, an HttpOnly cookie called `__wpdm_client`, the page title "Networkwalks Academy" and several unusual headers, including `link`, `x-nginx-cache` and `x-endurance-cache-level`.
+
+### 3. nslookup: name to IP address
+`nslookup networkwalks.com | tee nslookup_output.txt`
+
+Querying Google's resolver (8.8.8.8) returned a non-authoritative answer of `192.232.216.135`, matching the IP that WhatWeb found.
+
+### 4. curl: HTTP response headers
+`curl -I https://networkwalks.com`
+
+Requesting only the headers shows an HTTP/2 `200` response from Apache, cache headers in front of WordPress, and a `Link` header pointing to the REST API at `/wp-json/`. *(Screenshot for this step is not in the evidence set yet.)*
+
+### 5. wafw00f: firewall detection
+`wafw00f networkwalks.com | tee wafw00f_output.txt`
+
+Wafw00f v2.4.2 sent two requests and concluded that the site is behind a **ModSecurity (SpiderLabs)** Web Application Firewall.
+
+### 6. dnsrecon: DNS enumeration
+`dnsrecon -d networkwalks.com | tee dnsrecon_output.txt`
+
+The enumeration returned:
+
+- **SOA:** `ns6135.hostgator.com` (50.87.144.87)
+- **NS:** `ns6136.hostgator.com` (192.232.216.131) and `ns6135.hostgator.com` (50.87.144.87). Both report BIND version `9.16.23-RH`.
+- **MX:** `mail.networkwalks.com` (192.232.216.135)
+- **A:** `networkwalks.com` (192.232.216.135)
+- **TXT:** a Google site-verification record and an SPF record (`v=spf1 +a +mx +ip4:50.87.144.87 +include:websitewelcome.com ~all`)
+
+The DNSSEC query got no answer, and the SRV enumeration found no SRV records.
+
+## Summary
+
+| Item | Result |
+|---|---|
+| Domain | networkwalks.com |
+| Registrar | GoDaddy (created 2019-11-06, expires 2027-11-06) |
+| Hosting provider | HostGator |
+| Server IP | 192.232.216.135 |
+| Web server | Apache |
+| CMS and plugin | WordPress 7.1, WordPress Download Manager 3.3.58 |
+| Other technology | jQuery 3.7.1, Google Tag Manager |
+| Mail server | mail.networkwalks.com (192.232.216.135) |
+| Name servers | ns6135.hostgator.com, ns6136.hostgator.com (BIND 9.16.23-RH) |
+| SPF policy | Soft-fail (`~all`) |
+| DNSSEC | Unsigned |
+| WAF | ModSecurity (SpiderLabs) |
+
+## Notes
+
+- These tools read what the target and its DNS already publish. They do not attack anything, which is why footprinting is quiet and hard to spot.
+- The findings are observations, not confirmed weaknesses. Version numbers, IP addresses and DNS records would need further authorised testing before being called vulnerabilities.
+- Only run these tools against systems you own or have permission to test.
+
+## Evidence
+
+```
+W2-PM1-footprinting/
+├── README.md
+├── outputs/        # whois_output.txt, whatweb_output.text, nslookup_output.txt,
+│                   # curl_output.txt, wafw00f_output.txt, dnsrecon_output.txt
+└── screenshots/    # one screenshot per tool
+```
+
+**Author:** Ian Bungei Imbayi
+
+Based on the "Footprinting & Reconnaissance Attacks with Multiple Kali Tools" task from Networkwalks Academy: [www.networkwalks.com](https://www.networkwalks.com)
