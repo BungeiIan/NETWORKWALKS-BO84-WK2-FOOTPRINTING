@@ -1,0 +1,82 @@
+# NETWORKWALKS-WK2-PM5-NETWORK-SCANNING-ZENMAP
+
+## Host Discovery with Zenmap
+
+This project documents a host-discovery task done with **Zenmap**, the graphical interface for Nmap. The aim was to work out which subnet my computer sits on, sweep that subnet to see which devices respond, record their addresses, and look at the resulting network map. The scan was run on 12 November 2026.
+
+## Requirements
+
+- A Windows PC
+- Nmap and Zenmap from <https://nmap.org/download.html> (the installer bundles Npcap)
+- A network that you own or have written permission to scan
+- Screenshots to back up each step
+
+## Method
+
+### 1. Install Zenmap
+I installed Zenmap with Nmap 7.991 from the official download page. My first download was damaged and failed its integrity check, so I downloaded it a second time.
+
+### 2. Identify my network
+Running `ipconfig` and `ipconfig /all` showed two relevant adapters:
+
+| Adapter | IPv4 address | Subnet mask | Comment |
+|---|---|---|---|
+| Wi-Fi | 10.111.9.12 | 255.255.0.0 | Shared /16 network (65,536 addresses). Not mine, so I did not scan it |
+| Mobile Hotspot (Microsoft Wi-Fi Direct Virtual Adapter #2) | 192.168.5.1 | 255.255.255.0 | Network I control, used for the scan |
+
+Because I have no permission to test the shared Wi-Fi, I enabled the Windows Mobile Hotspot and scanned that network instead. Its subnet is **192.168.5.0/24**.
+
+### 3. Run the scan
+In Zenmap I set:
+
+- **Target:** `192.168.5.0/24`
+- **Profile:** Ping scan
+- **Command:** `nmap -sn 192.168.5.0/24`
+
+A ping scan only checks whether hosts are up. It does not probe ports, which keeps the sweep light and quick.
+
+### 4. Read the results
+The Nmap output ended with: *256 IP addresses (3 hosts up) scanned in 16.76 seconds.* The Hosts panel on the left listed the three responders.
+
+| Host | Status | Extra detail from the output |
+|---|---|---|
+| 192.168.5.1 | Up | No MAC address reported |
+| 192.168.5.72 | Up | Latency 0.019 s; MAC `6A:A8:51:47:D8:2D`, vendor shown as *Unknown* |
+| 192.168.5.193 | Up | No MAC address reported |
+
+The MAC address of `192.168.5.72` is a locally administered (randomised) address, which is why Nmap cannot match it to a manufacturer. Phones commonly randomise their MAC address for privacy.
+
+### 5. View the topology
+On the **Topology** tab, Zenmap draws `localhost` at the centre with a line to each of the three discovered hosts: 192.168.5.1, 192.168.5.72 and 192.168.5.193. All three are drawn in green. Because a ping scan does not check ports, the colour here only tells us that no open-port count was collected; it says nothing about how exposed each host is.
+
+## Summary
+
+| Item | Result |
+|---|---|
+| Tool | Zenmap with Nmap 7.991 |
+| Network scanned | 192.168.5.0/24 (my own Windows Mobile Hotspot) |
+| Profile / command | Ping scan / `nmap -sn 192.168.5.0/24` |
+| Addresses scanned | 256 |
+| Hosts found up | 3 (192.168.5.1, 192.168.5.72, 192.168.5.193) |
+| Scan duration | 16.76 seconds |
+| MAC address shown | 6A:A8:51:47:D8:2D for 192.168.5.72 (vendor Unknown) |
+
+## Notes
+
+- Only scan networks you own or are explicitly authorised to test. A shared Wi-Fi network is not yours to scan.
+- One sweep was enough to list every device on the hotspot, which shows why unfamiliar devices on a network should be checked and why scanning your own network regularly is useful.
+- A ping scan does not reveal open ports or services. A port scan would be a separate step, and only on systems you are authorised to test.
+- These results are observations, not confirmed vulnerabilities.
+
+## Evidence
+
+```
+W2-PM5-zenmap/
+├── README.md
+├── screenshots/    # ipconfig, Zenmap ping scan output, topology view
+└── topology.pdf    # exported from Zenmap
+```
+
+**Author:** Ian Bungei Imbayi
+
+Based on the "Network Scanning with Zenmap" task from Networkwalks Academy: [www.networkwalks.com](https://www.networkwalks.com)
